@@ -159,7 +159,8 @@ def preprocess(infile):
     fin.close()
     # set global data
     # data["inputTags"] format is "A,B"
-    gFrameTags = data[u'inputTags'].split(', ')
+    if data[u'inputTags']:
+        gFrameTags = data[u'inputTags'].split(', ')
     # del suggestedBy field
     for fid in data[u'frames']:
         frame = data[u'frames'][fid]
@@ -171,6 +172,16 @@ def preprocess(infile):
 
 # Postprocess the vott dict
 def postprocess(data):
+    global gFrameTags
+    # set data["inputTags"], format is "A,B"
+    # gFrameTags format is ['A','B']
+    if gFrameTags:
+        data[u'inputTags'] = gFrameTags[0]
+        for tag in gFrameTags[1:]:
+            data[u'inputTags'] += ',' + tag
+    else:
+        data[u'inputTags'] = ''
+        
     boxid = 1
     for fid in data[u'frames']:
         frame = data[u'frames'][fid]
