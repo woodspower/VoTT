@@ -187,9 +187,13 @@ def postprocess(data):
     for fid in data[u'frames']:
         # set visited frame to all
         data[u'visitedFrames'].append(int(fid))
-        frame = data[u'frames'][fid]
-        for i in range(len(frame)):
-                box = frame[i]
+        frameboxes = data[u'frames'][fid]
+        # NOTICE: vott box name inside each frame must start from 1
+        boxname = 1
+        for i in range(len(frameboxes)):
+                box = frameboxes[i]
+                box[u'name'] = boxname
+                boxname += 1
                 # Add blocksuggest tag, avoid auto copy to next frame
                 box[u'blockSuggest'] = True
                 # Reallocate id of each dectect box
