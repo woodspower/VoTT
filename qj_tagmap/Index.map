@@ -1,7 +1,7 @@
 {
     "name": "Index auto tag set",
     "input": "./qj_template.json",
-    "output": "./output.json",
+    "output": "./Index.json",
     "max_frames": 2000,
     "width": 1697,
     "height": 955,
