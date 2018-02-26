@@ -183,7 +183,10 @@ def postprocess(data):
         data[u'inputTags'] = ''
         
     boxid = 1
+    data[u'visitedFrames'] = []
     for fid in data[u'frames']:
+        # set visited frame to all
+        data[u'visitedFrames'].append(int(fid))
         frame = data[u'frames'][fid]
         for i in range(len(frame)):
                 box = frame[i]
