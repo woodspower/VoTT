@@ -17,55 +17,15 @@ gHeight = 768
 gFrameTags = []
 
 
-
 gBackPath = './backup'
 
 
-copylist = [
-    {'name': 'majorgui', 'base': '344', 
-     'copyto': ['450~450' 
-               ]
-    },
-    {'name': 'dialoggui_ask', 'base': '108', 
-     'copyto': ['451~451'
-               ]
-    },
-    {'name': 'dialoggui_ok', 'base': '109', 
-     'copyto': ['452~452',
-               ]
-    }
 
-#{'name': 'majorgui', 'base': 344, 
-# 'copyto': ['292~302',
-#            '308~315',
-#            '321',
-#            '324',
-#            '330~337',
-#            '344~359',
-#            '363~383']}
-#,
-#{'name': 'dialoggui_ask', 'base': 108, 
-# 'copyto': ['303~305',
-#            '316~320',
-#            '325~329',
-#            '338~341',
-#            '360~361',
-#            '384~386']}
-#,
-#{'name': 'dialoggui_ok', 'base': 109, 
-# 'copyto': ['306~307',
-#            '322~323',
-#            '342~343',
-#            '362',
-#            '387']}
-#,
-#{'name': 'animategui', 'base': 34, 
-# 'copyto': ['316~317']}
-]
-
+# range format should be a string like '2~5' or '3'
 def parse_range(fromto):
-    ids = []
     l = re.split('~', fromto)
+    if not l:
+        return []
     assert len(l)<=2,'Format err:%s'%(fromto)
     # not digit, it is comments field
     if not l[0].isdigit():
@@ -77,28 +37,69 @@ def parse_range(fromto):
         # format like '303~ 307' or '303~303'
         f,t = int(l[0]),int(l[1])
     assert f<=t, 'Format err:%s'%(fromto)
-    for i in range(f,t+1):
-        ids.append(str(i))
-    return ids
-    
+    return [f,t]
+
 
 def do_setmap(data, tagmap):
     d = data[u'frames']
     for fromto in tagmap[u'setmap'].keys():
-        fids = parse_range(fromto) 
-        for fid in fids:
+        ids = parse_range(fromto) 
+        if not ids:
+            continue
+        for i in range(ids[0], ids[1]+1):
+            fid = str(i)
             assert fid not in d,"%s of %s is duplicate"%(fid, fromto)
             newframe(data, fid, tagmap[u'setmap'][fromto])
 
 def do_copymap(data, tagmap):
+    skiped_num = 0
+    empty_num = 0
     d = data[u'frames']
-    for fromto in tagmap[u'setmap'].keys():
-        fids = parse_range(fromto) 
-        for fid in fids:
-            assert fid not in d,"%s of %s is duplicate"%(fid, fromto)
-            newframe(data, fid, tagmap[u'setmap'][fromto])
+    #create a sortable frame copy dict
+    idmap = {}
+    for fromto in tagmap[u'copymap'].keys():
+        ids = parse_range(fromto) 
+        if not ids:
+            continue
+        for i in range(ids[0], ids[1]+1):
+            assert i not in idmap,"%s of %s is duplicate"%(fid, fromto)
+            idmap[i] = tagmap[u'copymap'][fromto].strip()
+    #copy start from the end of frames
+    for i in sorted(idmap.keys(), reverse=True):
+        tgt = str(i)
+        src = idmap[i]
+        #do not need copy own
+        if tgt is src:
+            continue
+        if not d.has_key(src) or not d[src]:
+            skiped_num+=1
+            empty_num+=1
+            print("skip frame:%s, since src:%s is empty"%(tgt, src))
+            continue
+        if d.has_key(tgt):
+            skiped_num+=1
+            print("skip frame:%s, it already has data"%(tgt))
+            continue
+        #copy it
+        newdata = copy.deepcopy(d[src])
+        for box in newdata:
+            if box.has_key('mother'):
+                if box['mother'] == False:
+                    #This box should not be copied
+                    newdata.remove(box)
+            else:
+                #new copied box should not be mother of others
+                box['mother'] = False
+        if not newdata:
+            skiped_num+=1
+            empty_num+=1
+            print("skip frame:%s, copied frame:%s cannot be mother"%(tgt,src))
+            continue
+        d[tgt] = newdata
+    print("skiped frame num:%d, empty frame num:%d"%(skiped_num, empty_num))
+        
 
-def process_mapfile(mapfile):
+def process_mapfile(mapfile, setframe):
     global gMaxFrames
     global gWidth
     global gHeight
@@ -116,7 +117,7 @@ def process_mapfile(mapfile):
     backupinput(infile, os.path.basename(mapfile).split('.')[0])
 
     # Open the input vott tag file
-    data = preprocess(infile)
+    data = preprocess(infile, setframe)
 
     if tagmap.has_key('setmap'):
         do_setmap(data, tagmap)
@@ -151,7 +152,7 @@ def backupinput(inputfile, subdir):
 
 
 # Preprocess the vott dict
-def preprocess(infile):
+def preprocess(infile, setframe):
     global gFrameTags
     # Read input file
     fin = open(infile, 'r')
@@ -168,6 +169,10 @@ def preprocess(infile):
                 box = frame[i]
                 if box.has_key(u'suggestedBy'):
                         del box[u'suggestedBy']
+                if fid == setframe:
+                    print 'set frame:%s as mother frame:', setframe
+                    if box.has_key('mother'):
+                        del box['mother']
     return data
 
 # Postprocess the vott dict
@@ -246,6 +251,7 @@ def newframe(data, fid, ftags):
     # frame tags may input like: 'Movie,Dialog' or 'Movie Dialog'
     taglist = re.split(' ,', ftags)
     for tag in taglist:
+        tag = tag.strip()
         if tag not in gFrameTags:
             gFrameTags.append(tag)
         
@@ -261,15 +267,6 @@ def newframe(data, fid, ftags):
                              'name':int(fid) 
                             }]
 
-def copyframes(data, cframesrc, cframerange):
-    global gMaxFrames
-    print 'copyframes from %d to %d-%d'%(cframesrc, cframerange[0], cframerange[1])
-    datasrc = data[u'frames'][unicode(str(cframesrc))]
-    if(cframerange[1] > gMaxFrames):
-        cframerange[1] = gMaxFrames
-    for fid in range(cframerange[0], cframerange[1]+1):
-        newdata = copy.deepcopy(datasrc)
-        data[u'frames'][unicode(str(fid))] = newdata
     
 def delframes(data, dframerange):
     global gMaxFrames
@@ -284,10 +281,11 @@ def main(argv):
     global gMaxFrames
     mapfile = ''
     mapdir = ''
+    setframe = ''
     mapfiles = []
 
     try:
-        opts, args = getopt.getopt(argv, "hf:d:",["mapfile=","mapdir="])
+        opts, args = getopt.getopt(argv, "hf:d:s:",["mapfile=","mapdir=","setframe="])
     except getopt.GetoptError:
         print getopt.GetoptError
         print 'auto_vott.py -m <mapfile> -d <mapdir>'
@@ -299,7 +297,11 @@ def main(argv):
         elif opt in ("-f", "--mapfile"):
             mapfile = arg
         elif opt in ("-d", "--mapdir"):
-            outfile = arg
+            mapdir = arg
+        elif opt in ("-s", "--setframe"):
+            setframe = arg
+
+
 
     if mapfile:
         print 'If -f exist, only mapfile will be accept', mapfile
@@ -310,7 +312,7 @@ def main(argv):
 
     for fname in mapfiles:
         print 'start to process mapfile:', fname
-        process_mapfile(fname)
+        process_mapfile(fname, setframe)
     
 
 
