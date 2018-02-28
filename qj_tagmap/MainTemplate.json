@@ -1,0 +1,26 @@
+{
+    "framerate": "1",
+    "frames": {
+        "38": [
+            {
+                "tags": [
+                    "Main"
+                ],
+                "height": 955,
+                "y1": 0,
+                "x2": 1697,
+                "y2": 955,
+                "id": 1,
+                "x1": 0,
+                "name": 1,
+                "width": 1697,
+                "blockSuggest": true,
+                "type": "Rectangle"
+            }
+        ]
+    },
+    "inputTags": "",
+    "scd": false,
+    "suggestiontype": "copy",
+    "visitedFrames": []
+}
