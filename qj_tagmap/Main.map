@@ -5,7 +5,7 @@
     "max_frames": 2000,
     "width": 1697,
     "height": 955,
-    "setmap": {
+    "copymap": {
         "#38": "Main_7_Guider",
         "38~43": "38",
         "#44": "Main_7",
