@@ -1,6 +1,6 @@
 {
     "name": "Main auto tag",
-    "input": "./qj_template.json",
+    "input": "./Main.json",
     "output": "./Main.json",
     "max_frames": 2000,
     "width": 1697,
