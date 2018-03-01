@@ -1,3 +1,4 @@
+
 import os
 import glob
 import sys, getopt
@@ -82,14 +83,17 @@ def do_copymap(data, tagmap):
             continue
         #copy it
         newdata = copy.deepcopy(d[src])
+        removelist = []
         for box in newdata:
             if box.has_key('mother'):
                 if box['mother'] == False:
                     #This box should not be copied
-                    newdata.remove(box)
+                    removelist.append(box)
             else:
                 #new copied box should not be mother of others
                 box['mother'] = False
+        for r in removelist:
+            newdata.remove(r)
         if not newdata:
             skiped_num+=1
             empty_num+=1
@@ -163,8 +167,11 @@ def preprocess(infile, setframe):
     if data[u'inputTags']:
         gFrameTags = data[u'inputTags'].split(', ')
     # del suggestedBy field
+    emptylist = []
     for fid in data[u'frames']:
         frame = data[u'frames'][fid]
+        if not frame:
+            emptylist.append(fid)
         for i in range(len(frame)):
                 box = frame[i]
                 if box.has_key(u'suggestedBy'):
@@ -173,6 +180,9 @@ def preprocess(infile, setframe):
                     print 'set frame:%s as mother frame:', setframe
                     if box.has_key('mother'):
                         del box['mother']
+    # remove the frame which do not have any box
+    for i in emptylist:
+        del data[u'frames'][i]
     return data
 
 # Postprocess the vott dict
