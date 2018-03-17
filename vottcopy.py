@@ -14,7 +14,6 @@ totalframenum = 2000
 
 
 
-originalsrc = '/Users/leo/Documents/game/qiji/2018_02_14_01_start.mp4.json'
 bakpath = './backup'
 
 
@@ -148,9 +147,8 @@ def delframes(data, dframerange):
 
 def main(argv):
     global totalframes
-    global originalsrc
-    infile = originalsrc
-    outfile = "output.json"
+    infile = ''
+    outfile = ''
     needtocopy = False
     needbatchcopy = False
     needtodel = False
@@ -247,6 +245,14 @@ def main(argv):
                 
             
             
+
+
+    if not infile:
+        print 'please input a file'
+        return
+
+    if not outfile:
+        outfile = infile
 
     print 'Input file : ', infile
     print 'Output file: ', outfile
