@@ -282,7 +282,7 @@ def main(argv):
     
     # Start to del
     if(needtodel):
-        print 'Start to del from %d-%d'%(cframerange[0], cframerange[1])
+        print 'Start to del from %d-%d'%(dframerange[0], dframerange[1])
         # dframerange.start should less than end
         assert(dframerange[0] <= dframerange[1])
         delframes(data, dframerange)
